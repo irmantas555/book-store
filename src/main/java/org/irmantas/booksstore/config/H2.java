@@ -21,10 +21,8 @@ public class H2 {
 
     @EventListener(ContextRefreshedEvent.class)
     public void start() throws java.sql.SQLException {
-        log.info("starting h2 console at port "+h2ConsolePort);
-        log.info("starting h2 console at port http:.//localhost:"+h2ConsolePort);
-        log.info("starting h2 console at port http:.//localhost:"+h2ConsolePort);
-        log.info("JDBC URL: jdbc:h2:mem:testdb");
+        log.info("starting h2 console at port http://localhost:"+h2ConsolePort);
+        log.info("H2 console JDBC URL: jdbc:h2:mem:testdb");
         this.webServer = org.h2.tools.Server.createWebServer("-webPort", h2ConsolePort.toString(), "-tcpAllowOthers").start();
     }
 

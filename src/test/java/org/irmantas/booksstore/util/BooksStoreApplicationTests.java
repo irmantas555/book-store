@@ -1,4 +1,4 @@
-package org.irmantas.booksstore;
+package org.irmantas.booksstore.util;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
