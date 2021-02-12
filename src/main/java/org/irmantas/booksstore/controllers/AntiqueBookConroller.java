@@ -30,7 +30,6 @@ public class AntiqueBookConroller {
     String dbOperationFailed = "There was an error in DB operation";
 
 
-
     @GetMapping("")
     public Flux<AntiqueBook> getAllBooks() {
         return antiqBooksRepo.findAll();
@@ -42,7 +41,6 @@ public class AntiqueBookConroller {
         return antiqBooksRepo.findById(id)
                 .defaultIfEmpty(new AntiqueBook())
                 .handle((book1, sink) -> {
-                    logger.info("Book= ", book1);
                     if (null == book1.getName()) {
                         sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
                     } else
@@ -52,15 +50,18 @@ public class AntiqueBookConroller {
 
     @GetMapping("/barcode/{value}")
     public Mono<ResponseEntity<Object>> getBooksByBarcode(@PathVariable String value) {
-        return antiqBooksRepo.findByBarcode(value)
-                .defaultIfEmpty(new AntiqueBook())
-                .handle((book1, sink) -> {
-                    logger.info("Book= ", book1);
-                    if (null == book1.getName()) {
-                        sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
-                    } else
-                        sink.next(ResponseEntity.ok().body(book1));
-                });
+        if (!value.matches("[0-9]{13}")) {
+            return Mono.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
+        } else {
+            return antiqBooksRepo.findByBarcode(value)
+                    .defaultIfEmpty(new AntiqueBook())
+                    .handle((book1, sink) -> {
+                        if (null == book1.getName()) {
+                            sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
+                        } else
+                            sink.next(ResponseEntity.ok().body(book1));
+                    });
+        }
     }
 
     @PutMapping("/barcode/{barcodeValue}/{field}/{fieldValue}")
@@ -68,7 +69,7 @@ public class AntiqueBookConroller {
                                                               @PathVariable String field,
                                                               @PathVariable String fieldValue
     ) {
-        if (barcodeValue.matches("[0-9]{13}")) {
+        if (!barcodeValue.matches("[0-9]{13}")) {
             return Mono.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
         } else if (!controllersUtils.getBookClassesFieldList().contains(field)) {
             return Mono.just(new ResponseEntity<>(noSuchField, HttpStatus.BAD_REQUEST));
@@ -76,46 +77,44 @@ public class AntiqueBookConroller {
             return antiqBooksRepo.findByBarcode(barcodeValue)
                     .defaultIfEmpty(new AntiqueBook())
                     .handle((book1, sink) -> {
-                        logger.info("Book= ", book1);
                         if (null == book1.getName()) {
                             sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                         } else {
                             Object objectResponseEntity = book1.updateField(field, fieldValue);
                             if (objectResponseEntity instanceof String) {
                                 sink.next(new ResponseEntity<>((String) objectResponseEntity, HttpStatus.BAD_REQUEST));
+                            } else {
+                                antiqBooksRepo.save((AntiqueBook) objectResponseEntity)
+                                        .defaultIfEmpty(new AntiqueBook())
+                                        .flatMap(antiqBooksRepo::save)
+                                        .subscribe(v -> {
+                                                    if (null != v.getName()) {
+                                                        sink.next(ResponseEntity.ok().body(v));
+                                                    } else {
+                                                        sink.next(new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST));
+                                                    }
+                                                },
+                                                err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
                             }
-                            antiqBooksRepo.save((AntiqueBook) objectResponseEntity)
-                                    .defaultIfEmpty(new AntiqueBook())
-                                    .flatMap(antiqBooksRepo::save)
-                                    .subscribe(v -> {
-                                                if (null != v.getName()) {
-                                                    ResponseEntity.ok().body(v);
-                                                } else {
-                                                    new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST);
-                                                }
-                                            },
-                                            err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
-
                         }
-
-                        sink.next(ResponseEntity.ok().body(book1));
                     });
         }
     }
 
     @GetMapping("/barcode/match/{value}")
-    public Flux<ResponseEntity<Object>> getBarcodeMatch(@PathVariable String value) {
-        if (!value.matches("[0-9]{13}")) {
-            return Flux.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public Flux<Object> getBarcodeMatch(@PathVariable String value) {
+        if (!value.matches("[0-9]+")) {
+            return Flux.just(barcodeNotValid);
         } else {
             return antiqBooksRepo.findByBarcodeContaining(value)
                     .defaultIfEmpty(new AntiqueBook())
                     .handle((book1, sink) -> {
-                        logger.info("Book= ", book1);
                         if (null == book1.getName()) {
                             sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                         } else
-                            sink.next(ResponseEntity.ok().body(book1));
+                            sink.next(book1);
                     });
         }
     }
@@ -130,7 +129,6 @@ public class AntiqueBookConroller {
                     .flatMap(book1 -> antiqBooksRepo.save(book1))
                     .map(book1 -> ResponseEntity.ok().body(book1));
     }
-
 
 
     @PutMapping("/{id}")

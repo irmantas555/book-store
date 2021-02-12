@@ -30,17 +30,17 @@ public class ScienceJournalController {
     ScienceJournalRepo scienceJournalRepo;
 
     @GetMapping("")
-    public Flux<ScienceJournal> getAllBooks() {
+    public Flux<ScienceJournal> getAllSciencJournal() {
         return scienceJournalRepo.findAll();
     }
 
 
+
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<Object>> getBooksById(@PathVariable Long id) {
+    public Mono<ResponseEntity<Object>> getSciencJournalsById(@PathVariable Long id) {
         return scienceJournalRepo.findById(id)
                 .defaultIfEmpty(new ScienceJournal())
                 .handle((book1, sink) -> {
-                    logger.info("Book= ", book1);
                     if (null == book1.getName()) {
                         sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
                     } else
@@ -49,11 +49,10 @@ public class ScienceJournalController {
     }
 
     @GetMapping("/barcode/{value}")
-    public Mono<ResponseEntity<Object>> getBooksByBarcode(@PathVariable String value) {
+    public Mono<ResponseEntity<Object>> getSciencJournalByBarcode(@PathVariable String value) {
         return scienceJournalRepo.findByBarcode(value)
                 .defaultIfEmpty(new ScienceJournal())
                 .handle((book1, sink) -> {
-                    logger.info("Book= ", book1);
                     if (null == book1.getName()) {
                         sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                     } else
@@ -62,11 +61,11 @@ public class ScienceJournalController {
     }
 
     @PutMapping("/barcode/{barcodeValue}/{field}/{fieldValue}")
-    public Mono<ResponseEntity<Object>> updateValuesByBarcode(@PathVariable String barcodeValue,
+    public Mono<ResponseEntity<Object>> updateSciencJournalValuesByBarcode(@PathVariable String barcodeValue,
                                                               @PathVariable String field,
                                                               @PathVariable String fieldValue
     ) {
-        if (barcodeValue.matches("[0-9]{13}")) {
+        if (!barcodeValue.matches("[0-9]{13}")) {
             return Mono.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
         } else if (!controllersUtils.getBookClassesFieldList().contains(field)) {
             return Mono.just(new ResponseEntity<>(noSuchField, HttpStatus.BAD_REQUEST));
@@ -74,65 +73,62 @@ public class ScienceJournalController {
             return scienceJournalRepo.findByBarcode(barcodeValue)
                     .defaultIfEmpty(new ScienceJournal())
                     .handle((book1, sink) -> {
-                        logger.info("Book= ", book1);
                         if (null == book1.getName()) {
                             sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                         } else {
                             Object objectResponseEntity = book1.updateField(field, fieldValue);
                             if (objectResponseEntity instanceof String) {
                                 sink.next(new ResponseEntity<>((String) objectResponseEntity, HttpStatus.BAD_REQUEST));
+                            } else {
+                                scienceJournalRepo.save((ScienceJournal) objectResponseEntity)
+                                        .defaultIfEmpty(new ScienceJournal())
+                                        .flatMap(scienceJournalRepo::save)
+                                        .subscribe(v -> {
+                                                    if (null != v.getName()) {
+                                                        sink.next(ResponseEntity.ok().body(v));
+                                                    } else {
+                                                        sink.next(new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST));
+                                                    }
+                                                },
+                                                err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
                             }
-                            scienceJournalRepo.save((ScienceJournal) objectResponseEntity)
-                                    .defaultIfEmpty(new ScienceJournal())
-                                    .flatMap(scienceJournalRepo::save)
-                                    .subscribe(v -> {
-                                                if (null != v.getName()) {
-                                                    ResponseEntity.ok().body(v);
-                                                } else {
-                                                    new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST);
-                                                }
-                                            },
-                                            err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
-
                         }
-
-                        sink.next(ResponseEntity.ok().body(book1));
                     });
         }
     }
-
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
     @GetMapping("/barcode/match/{value}")
-    public Flux<ResponseEntity<Object>> getBarcodeMatch(@PathVariable Long value) {
-        if (value < 0 || value > 1E+13) {
-            return Flux.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
+    public Flux<Object> getSciencJournalBarcodeMatch(@PathVariable String value) {
+        if (!value.matches("[0-9]+")) {
+            return Flux.just(barcodeNotValid);
         } else {
             return scienceJournalRepo.findByBarcodeContaining(value.toString())
                     .defaultIfEmpty(new ScienceJournal())
                     .handle((book1, sink) -> {
-                        logger.info("Book= ", book1);
                         if (null == book1.getName()) {
                             sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                         } else
-                            sink.next(ResponseEntity.ok().body(book1));
+                            sink.next(book1);
                     });
         }
     }
 
     @PostMapping("")
-    public Mono<ResponseEntity<Object>> postBook(@RequestBody ScienceJournal newBook) {
-        String validationMessage = newBook.validateBook();
+    public Mono<ResponseEntity<Object>> postSciencJournal(@RequestBody ScienceJournal scienceJournal) {
+        String validationMessage = scienceJournal.validateBook();
         if (!validationMessage.equals("OK")) {
             return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
         } else
-            return Mono.just(newBook)
+            return Mono.just(scienceJournal)
                     .flatMap(book1 -> scienceJournalRepo.save(book1))
                     .map(book1 -> ResponseEntity.ok().body(book1));
     }
 
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<Object>> updateBookById(@PathVariable Long id, @RequestBody ScienceJournal updatedBook) {
-        String validationMessage = updatedBook.validateBook();
+    public Mono<ResponseEntity<Object>> updateSciencJournalById(@PathVariable Long id, @RequestBody ScienceJournal updatedScienceJournal) {
+        String validationMessage = updatedScienceJournal.validateBook();
         if (!validationMessage.equals("OK")) {
             return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
         } else
@@ -142,7 +138,7 @@ public class ScienceJournalController {
                         if (null == book1.getName()) {
                             sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
                         } else {
-                            scienceJournalRepo.save(updatedBook)
+                            scienceJournalRepo.save(updatedScienceJournal)
                                     .subscribe(v -> sink.next(ResponseEntity.ok().body(v)),
                                             throwable -> sink.next(new ResponseEntity<>(throwable.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
                         }

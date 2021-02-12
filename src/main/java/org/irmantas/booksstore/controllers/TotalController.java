@@ -28,7 +28,7 @@ public class TotalController {
         return booksRepo.findByBarcodeContaining(value)
                 .concatWith(antiqueBooksRepo.findByBarcodeContaining(value))
                 .concatWith(scienceJournalRepo.findByBarcodeContaining(value))
-                .map(o -> o.getTotalPrice())
+                .map(o -> o.acquireTotalPrice())
                 .reduce(0.00, (total, currentValue) -> {
                     total = total + currentValue.doubleValue();
                     return total;

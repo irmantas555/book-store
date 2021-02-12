@@ -1,8 +1,9 @@
 package org.irmantas.booksstore.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
@@ -12,26 +13,29 @@ import javax.persistence.GenerationType;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(value = "books")
 public class Book implements BookHelpers {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
-    private String name;
-    private String author;
-    private String barcode;
-    private int qty;
-    private BigDecimal price;
+    protected long id;
+    protected String name;
+    protected String author;
+    protected String barcode;
+    protected int qty;
+    protected BigDecimal price;
 
-    public double getDoublePrice() {
+
+    public double doublePriceFromBigDecimal() {
         return price.doubleValue();
     }
 
-    public void setDoublePrice(double price) {
+    public void bigDecimalPriceFromDouble(double price) {
         this.price = BigDecimal.valueOf(price);
     }
 
@@ -43,7 +47,7 @@ public class Book implements BookHelpers {
         this.price = BigDecimal.valueOf(price);
     }
 
-    public BigDecimal getTotalPrice(){
+    public BigDecimal acquireTotalPrice(){
         return (BigDecimal.valueOf(price.doubleValue() * qty)).setScale(2, RoundingMode.UP);
     }
 
@@ -65,24 +69,45 @@ public class Book implements BookHelpers {
 
     @SneakyThrows
     public Object updateField(String field, String fieldValue) {
-        Field field1 = this.getClass().getDeclaredField(field);
-//        field1.setAccessible(true);
+        String barcodeMatch = "[0-9]{13}";
+        String intMatch = "[1-2]{0,1}[0-9]{1,9}";
+        String longMatch = "[0-9]{0,18}";
+        String bigMatch = "[0-9]{0,18}[\\.]{0,1}[0-9]{0,18}";
+        Field field1;
+        if (chekForField(field)) {
+            field1 = Book.class.getDeclaredField(field);
+        } else {
+            return "There is no such field";
+        }
+        field1.setAccessible(true);
         if (field1.getGenericType().getTypeName().equals("long")) {
-            Long newLong = Long.valueOf(fieldValue);
-            if (null != newLong) {
+            if (fieldValue.matches(longMatch)) {
+                Long newLong = Long.valueOf(fieldValue);
                 field1.setLong(this, newLong);
+            } else {
+                return "Price value should be digits";
             }
         } else if (field1.getGenericType().getTypeName().equals("int")) {
+            if (fieldValue.matches(intMatch)) {
             Integer newInt = Integer.valueOf(fieldValue);
-            if (null != newInt) {
                 field1.setInt(this, newInt);
+            } else {
+                return "Price value should be digits";
             }
-        } else if (field1.getGenericType().getTypeName().equals("java.lang.BigDecimal")) {
-           this.price = BigDecimal.valueOf(Double.parseDouble(fieldValue));
-           this.price.setScale(2, RoundingMode.UP);
+        } else if (field1.getGenericType().getTypeName().equals("java.math.BigDecimal")) {
+            if (fieldValue.matches(bigMatch)) {
+                this.price = BigDecimal.valueOf(Double.parseDouble(fieldValue));
+                this.price.setScale(2, RoundingMode.UP);
+            } else {
+                return "Price value should be digits and dot";
+            }
 
         } else {
+            if (fieldValue.length() > 1) {
             field1.set(this, fieldValue);
+            } else {
+                return "Value should be al least 2 characters long";
+            }
         }
         String s = this.validateBook();
         if (s.equals("OK")) {
@@ -90,5 +115,9 @@ public class Book implements BookHelpers {
         } else {
             return s;
         }
+    }
+    private boolean chekForField(String field) {
+        long count = Arrays.stream(Book.class.getDeclaredFields()).filter(field1 -> field1.getName().equals(field)).count();
+        return count > 0;
     }
 }

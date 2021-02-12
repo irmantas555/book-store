@@ -91,29 +91,30 @@ public class BookController {
                             Object objectResponseEntity = book1.updateField(field, fieldValue);
                             if (objectResponseEntity instanceof String) {
                                 sink.next(new ResponseEntity<>((String) objectResponseEntity, HttpStatus.BAD_REQUEST));
+                            } else {
+                                booksRepo.save((Book) objectResponseEntity)
+                                        .defaultIfEmpty(new Book())
+                                        .flatMap(booksRepo::save)
+                                        .subscribe(v -> {
+                                                    if (null != v.getName()) {
+                                                        sink.next(ResponseEntity.ok().body(v));
+                                                    } else {
+                                                        sink.next(new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST));
+                                                    }
+                                                },
+                                                err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
                             }
-                            booksRepo.save((Book) objectResponseEntity)
-                                    .defaultIfEmpty(new Book())
-                                    .flatMap(booksRepo::save)
-                                    .subscribe(v -> {
-                                                if (null != v.getName()) {
-                                                    ResponseEntity.ok().body(v);
-                                                } else {
-                                                    new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST);
-                                                }
-                                            },
-                                            err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
                         }
-                        sink.next(ResponseEntity.ok().body(book1));
                     });
         }
     }
 
     @GetMapping("/barcode/match/{value}")
+    @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public Flux<Object> getBarcodeMatch(@PathVariable String value) {
-        if (value.length() > 10) {
-            return Flux.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
+        if (!value.matches("[0-9]+")) {
+            return Flux.just(barcodeNotValid);
         } else {
             return booksRepo.findByBarcodeContaining(value)
                     .defaultIfEmpty(new Book())

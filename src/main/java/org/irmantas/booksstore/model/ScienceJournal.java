@@ -1,14 +1,18 @@
 package org.irmantas.booksstore.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(value = "science_journals")
 public class ScienceJournal extends Book{
     private int scienceIndex;
@@ -38,7 +42,7 @@ public class ScienceJournal extends Book{
     }
 
     String scienceIndexValidation(){
-        if (scienceIndex < 1 || scienceIndex > 10){
+        if (this.scienceIndex < 1 || this.scienceIndex > 10){
             return "Invalid science index";
         } else {
             return "OK";
@@ -46,10 +50,30 @@ public class ScienceJournal extends Book{
     }
 
     @Override
-    public BigDecimal getTotalPrice() {
-        double unmodifiedValue = super.getTotalPrice().doubleValue();
+    public BigDecimal acquireTotalPrice() {
+        double unmodifiedValue = super.acquireTotalPrice().doubleValue();
         BigDecimal finalVAlue = BigDecimal.valueOf(unmodifiedValue * scienceIndex);
         return finalVAlue.setScale(2, RoundingMode.UP);
+    }
+
+    @Override
+    @SneakyThrows
+    public Object updateField(String field, String fieldValue) {
+        if (chekForFiel(field)) {
+            if (fieldValue.matches("[0-9][0]*") ) {
+                this.scienceIndex = Integer.parseInt(fieldValue);
+                return this;
+            } else {
+                return "Vaue should contain digit and should be between 1 and 10 ";
+            }
+        } else {
+            return super.updateField(field, fieldValue);
+        }
+    }
+
+    private boolean chekForFiel(String field) {
+        long count = Arrays.stream(this.getClass().getDeclaredFields()).filter(field1 -> field1.getName().equals(field)).count();
+        return count > 0;
     }
 
 }

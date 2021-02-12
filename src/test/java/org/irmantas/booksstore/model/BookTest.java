@@ -15,7 +15,7 @@ class BookTest {
     @DisplayName("If successful display total price")
     void getTotalPrice() {
         Book book = loadFlux.getKnownBooksList().get(0);
-        assertEquals(book.getTotalPrice().doubleValue(), 100.00);
+        assertEquals(book.acquireTotalPrice().doubleValue(), 100.00);
     }
 
     @Test
@@ -53,7 +53,7 @@ class BookTest {
         book.setQty(-20);
         assertNotEquals(book.validateBook(),"OK");
         book = loadFlux.getKnownBooksList().get(0);
-        book.setDoublePrice(-20.00);
+        book.bigDecimalPriceFromDouble(-20.00);
         assertNotEquals(book.validateBook(),"OK");
         book = new Book();
         assertNotEquals(book.validateBook(),"OK");
