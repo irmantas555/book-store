@@ -1,4 +1,7 @@
-CREATE TABLE books (id bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY, 
+DROP TABLE IF EXISTS books;
+DROP TABLE IF EXISTS antique_books;
+DROP TABLE IF EXISTS science_journals;
+CREATE TABLE books (id bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                           name varchar(40) DEFAULT '',
                           author varchar(40) NOT NULL DEFAULT '',
                           barcode varchar(13) NOT NULL,

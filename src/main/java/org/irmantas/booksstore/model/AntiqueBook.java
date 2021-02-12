@@ -1,6 +1,5 @@
 package org.irmantas.booksstore.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.relational.core.mapping.Table;
@@ -12,13 +11,21 @@ import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(value = "antique_books")
 public class AntiqueBook extends Book{
     private int releaseYear;
 
     public AntiqueBook(String name, String author, String  barcode, int qty, double price, int releaseYear) {
         super(name, author, barcode, qty, price);
+        this.releaseYear = releaseYear;
+    }
+
+    public AntiqueBook(long id, String name, String author, String barcode, int qty, BigDecimal price, int releaseYear) {
+        super(id, name, author, barcode, qty, price);
+        this.releaseYear = releaseYear;
+    }
+
+    public AntiqueBook(int releaseYear) {
         this.releaseYear = releaseYear;
     }
 
@@ -35,11 +42,9 @@ public class AntiqueBook extends Book{
     @Override
     public BigDecimal getTotalPrice() {
        double unmodifiedValue = super.getTotalPrice().doubleValue();
-        System.out.println("unmodifiedValue = " + unmodifiedValue);
        double antiqueCoeficient = (LocalDate.now().getYear() - releaseYear) /10;
-        System.out.println("antiqueCoeficient = " + antiqueCoeficient);
-       BigDecimal finalVAlue = BigDecimal.valueOf(unmodifiedValue * antiqueCoeficient);
-       return finalVAlue.setScale(2, RoundingMode.UP);
+       BigDecimal finalValue = BigDecimal.valueOf(unmodifiedValue * antiqueCoeficient);
+       return finalValue.setScale(2, RoundingMode.UP);
     }
 
     String scienceIndexValidation(){

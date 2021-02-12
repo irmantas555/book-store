@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 @RequestMapping("science/journals")
 public class ScienceJournalController {
     @Autowired
-    static ControllersUtils controllersUtils;
+    ControllersUtils controllersUtils;
 
     Logger logger = LoggerFactory.getLogger(BookController.class);
 

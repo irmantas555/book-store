@@ -1,6 +1,5 @@
 package org.irmantas.booksstore.config;
 
-import io.r2dbc.h2.CloseableConnectionFactory;
 import io.r2dbc.h2.H2ConnectionConfiguration;
 import io.r2dbc.h2.H2ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactory;
@@ -13,11 +12,11 @@ import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 
 @Configuration
-@EnableR2dbcRepositories
-@Profile("test")
-public class H2DbConfig extends AbstractR2dbcConfiguration {
+
+@EnableR2dbcRepositories(basePackages = "org.irmantas.booksstore.repositories")
+@Profile("prod")
+public class H2DbConfigProd extends AbstractR2dbcConfiguration {
     @Override
-    @Profile("test")
     @Bean
     public H2ConnectionFactory connectionFactory() {
         return new H2ConnectionFactory(
@@ -27,6 +26,7 @@ public class H2DbConfig extends AbstractR2dbcConfiguration {
                         .build()
         );
     }
+
 
     @Bean
     ReactiveTransactionManager transactionManager(ConnectionFactory connectionFactory) {

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-@Profile("h2")
-public class H2 {
+@Profile("test")
+public class H2Console {
 
     private Server webServer;
 

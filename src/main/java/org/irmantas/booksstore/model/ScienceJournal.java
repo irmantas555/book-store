@@ -1,16 +1,13 @@
 package org.irmantas.booksstore.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 @Table(value = "science_journals")
 public class ScienceJournal extends Book{
@@ -18,6 +15,15 @@ public class ScienceJournal extends Book{
 
     public ScienceJournal(String name, String author, String barcode, int qty, double price, int scienceIndex) {
         super(name, author, barcode, qty, price);
+        this.scienceIndex = scienceIndex;
+    }
+
+    public ScienceJournal(long id, String name, String author, String barcode, int qty, BigDecimal price, int scienceIndex) {
+        super(id, name, author, barcode, qty, price);
+        this.scienceIndex = scienceIndex;
+    }
+
+    public ScienceJournal(int scienceIndex) {
         this.scienceIndex = scienceIndex;
     }
 

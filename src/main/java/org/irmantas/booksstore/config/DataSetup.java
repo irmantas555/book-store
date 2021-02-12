@@ -9,7 +9,6 @@ import org.irmantas.booksstore.repositories.BooksRepo;
 import org.irmantas.booksstore.repositories.ScienceJournalRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.r2dbc.connection.init.ConnectionFactoryInitializer;
 import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
@@ -18,18 +17,15 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.stream.LongStream;
 
 @Component
-public class Setup {
+public class DataSetup {
 
     Flux<Book> bookFlux;
 
@@ -48,7 +44,7 @@ public class Setup {
     @Autowired
     ScienceJournalRepo scienceJournalRepo;
 
-    public Setup() {
+    public DataSetup() {
         this.filePath = "src/main/resources/books.txt";
         ;
         this.path = Paths.get(filePath);
@@ -61,7 +57,6 @@ public class Setup {
         initializer.setDatabasePopulator(new ResourceDatabasePopulator(new ClassPathResource("schema.sql")));
         return initializer;
     }
-
     @PostConstruct
     public void getBooks() {
         Mono.fromCallable(() -> Files.readAllLines(path))
@@ -71,24 +66,29 @@ public class Setup {
                 .map(s -> Arrays.asList(s.split("-")))
                 .handle((list, sink) -> {
                     int rndInt = random.nextInt(10);
-                    if (rndInt < 4) {
-                        Book newBook = new Book(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice());
-                        booksRepo.save(newBook)
-                                .subscribe(v -> {
-                                    sink.next(v);
-                                });
-                    } else if (rndInt < 8 && rndInt > 3) {
-                        AntiqueBook antiqueBook = new AntiqueBook(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice(), getAntiqueYear());
-                        antiqueBooksRepo.save(antiqueBook)
-                                .subscribe(v -> {
-                                    sink.next(v);
-                                });
-                    } else {
-                        ScienceJournal scienceJournal = new ScienceJournal(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice(), getScienceIndex());
-                        scienceJournalRepo.save(scienceJournal)
-                                .subscribe(v -> {
-                                    sink.next(v);
-                                });
+                    System.out.println("RANDOM VAL: " + rndInt);
+                    switch (rndInt< 4?1:rndInt<8 && rndInt > 3?2:3){
+                        case 1:
+                            Book newBook = new Book(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice());
+                            booksRepo.save(newBook)
+                                    .subscribe(v -> {
+                                        sink.next(v);
+                                    });
+                            break;
+                        case 2:
+                            AntiqueBook antiqueBook = new AntiqueBook(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice(), getAntiqueYear());
+                            antiqueBooksRepo.save(antiqueBook)
+                                    .subscribe(v -> {
+                                        sink.next(v);
+                                    });
+                            break;
+                        case 3:
+                            ScienceJournal scienceJournal = new ScienceJournal(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice(), getScienceIndex());
+                            scienceJournalRepo.save(scienceJournal)
+                                    .subscribe(v -> {
+                                        sink.next(v);
+                                    });
+                            break;
                     }
                 })
                 .subscribe();

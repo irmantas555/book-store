@@ -15,7 +15,10 @@ import reactor.core.publisher.Mono;
 @RequestMapping("books/antique")
 public class AntiqueBookConroller {
     @Autowired
-    static ControllersUtils controllersUtils;
+    ControllersUtils controllersUtils;
+
+    @Autowired
+    AntiqueBooksRepo antiqBooksRepo;
 
     Logger logger = LoggerFactory.getLogger(BookController.class);
 
@@ -26,8 +29,7 @@ public class AntiqueBookConroller {
     String noSuchField = "No such field in in Books";
     String dbOperationFailed = "There was an error in DB operation";
 
-    @Autowired
-    AntiqueBooksRepo antiqBooksRepo;
+
 
     @GetMapping("")
     public Flux<AntiqueBook> getAllBooks() {

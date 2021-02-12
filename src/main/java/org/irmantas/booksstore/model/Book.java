@@ -27,6 +27,13 @@ public class Book implements BookHelpers {
     private int qty;
     private BigDecimal price;
 
+    public double getDoublePrice() {
+        return price.doubleValue();
+    }
+
+    public void setDoublePrice(double price) {
+        this.price = BigDecimal.valueOf(price);
+    }
 
     public Book(String name, String author, String barcode, int qty, double price) {
         this.name = name;
@@ -59,7 +66,7 @@ public class Book implements BookHelpers {
     @SneakyThrows
     public Object updateField(String field, String fieldValue) {
         Field field1 = this.getClass().getDeclaredField(field);
-        field1.setAccessible(true);
+//        field1.setAccessible(true);
         if (field1.getGenericType().getTypeName().equals("long")) {
             Long newLong = Long.valueOf(fieldValue);
             if (null != newLong) {

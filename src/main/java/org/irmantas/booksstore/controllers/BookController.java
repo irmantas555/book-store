@@ -2,7 +2,6 @@ package org.irmantas.booksstore.controllers;
 
 import org.irmantas.booksstore.model.Book;
 import org.irmantas.booksstore.repositories.BooksRepo;
-import org.irmantas.booksstore.services.CustomQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +16,7 @@ import reactor.core.publisher.Mono;
 public class BookController {
 
     @Autowired
-    static ControllersUtils controllersUtils;
-
-    @Autowired
-    CustomQueryService customQueryService;
+    ControllersUtils controllersUtils;
 
     Logger logger = LoggerFactory.getLogger(BookController.class);
 
@@ -40,12 +36,23 @@ public class BookController {
     }
 
 
+    @PostMapping("")
+    public Mono<ResponseEntity<Object>> postBook(@RequestBody Book newBook) {
+        String validationMessage = newBook.validateBook();
+        if (!validationMessage.equals("OK")) {
+            return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
+        } else {
+        return booksRepo.save(newBook)
+                .map(book -> ResponseEntity.ok().body(book));
+        }
+    }
+
+
     @GetMapping("/{id}")
     public Mono<ResponseEntity<Object>> getBooksById(@PathVariable Long id) {
         return booksRepo.findById(id)
                 .defaultIfEmpty(new Book())
                 .handle((book1, sink) -> {
-                    logger.info("Book= ", book1);
                     if (null == book1.getName()) {
                         sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
                     } else
@@ -58,7 +65,6 @@ public class BookController {
         return booksRepo.findByBarcode(value)
                 .defaultIfEmpty(new Book())
                 .handle((book1, sink) -> {
-                    logger.info("Book= ", book1);
                     if (null == book1.getName()) {
                         sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                     } else
@@ -79,7 +85,6 @@ public class BookController {
             return booksRepo.findByBarcode(barcodeValue)
                     .defaultIfEmpty(new Book())
                     .handle((book1, sink) -> {
-                        logger.info("Book= ", book1);
                         if (null == book1.getName()) {
                             sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
                         } else {
@@ -98,9 +103,7 @@ public class BookController {
                                                 }
                                             },
                                             err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
-
                         }
-
                         sink.next(ResponseEntity.ok().body(book1));
                     });
         }
@@ -109,14 +112,12 @@ public class BookController {
     @GetMapping("/barcode/match/{value}")
     @ResponseBody
     public Flux<Object> getBarcodeMatch(@PathVariable String value) {
-//        if (value < 0 || value > 1E+13) {
         if (value.length() > 10) {
             return Flux.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
         } else {
             return booksRepo.findByBarcodeContaining(value)
                     .defaultIfEmpty(new Book())
                     .handle((book1, sink) -> {
-                        logger.info("Book= ", book1);
                         if (null == book1.getName()) {
                             sink.next(notExistWithBarcodeReply);
                         } else
@@ -124,25 +125,6 @@ public class BookController {
                     });
         }
     }
-
-    @GetMapping("/name/match/{value}")
-    @ResponseBody
-    public Flux<Book> getNameMatch(@PathVariable String value) {
-        return booksRepo.findByBarcodeContaining(value);
-    }
-
-    @PostMapping("")
-    public Mono<ResponseEntity<Object>> postBook(@RequestBody Book newBook) {
-        String validationMessage = newBook.validateBook();
-        if (!validationMessage.equals("OK")) {
-            return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
-        } else
-            return Mono.just(newBook)
-                    .flatMap(book1 -> booksRepo.save(book1))
-                    .map(book1 -> ResponseEntity.ok().body(book1));
-    }
-
-
 
     @PutMapping("/{id}")
     public Mono<ResponseEntity<Object>> updateBookById(@PathVariable Long id, @RequestBody Book updatedBook) {

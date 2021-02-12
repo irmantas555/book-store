@@ -10,40 +10,30 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.r2dbc.core.DatabaseClient;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
 //@Disabled
 @ExtendWith(SpringExtension.class)
-@ActiveProfiles("test")
+//@ActiveProfiles("test")
 @SpringBootTest(classes = InfrastructureConfiguration.class)
 public class DbTests {
 
-    String filePath = "src/main/resources/books.txt";
-
-    Path path = Paths.get(filePath);
-
-    Flux<Book> bookFlux;
-
     @Autowired
-    DatabaseClient client;
+    LoadFlux loadFlux;
 
     @Autowired
     BooksRepo booksRepo;
+
+    @Autowired
+    DatabaseClient client;
 
     @BeforeAll
     public void setUp(){
@@ -70,33 +60,6 @@ public class DbTests {
 
 
 
-
-    @BeforeAll
-    void getBooks() {
-        bookFlux = Mono.fromCallable(() -> Files.readAllLines(path))
-                .flux()
-                .flatMap(strings -> Flux.fromIterable(strings))
-                .map(s -> Arrays.asList(s.split("-")))
-                .map(list -> new Book(list.get(1), list.get(0), generateBarcode(), getQty(), genetaratePrice()));
-    }
-
-    String generateBarcode() {
-        Random r1 = new Random();
-        long[] longs = r1.longs(1, 100000000000L, 1000000000000L).toArray();
-        return String.valueOf(longs[0]);
-
-    }
-
-    double genetaratePrice() {
-        Random r2 = new Random();
-        return Double.valueOf(r2.nextInt(3000)) / 100 + 10.00;
-    }
-
-    int getQty() {
-        Random r1 = new Random();
-        return r1.nextInt(30) + 5;
-    }
-
     @Test
     @Order(2)
     public void testPostRepositoryExisted() {
@@ -108,7 +71,7 @@ public class DbTests {
     @Test
     @Order(3)
     void inserAndDeleteBook() {
-        this.bookFlux
+        this.loadFlux.getBooks()
                 .flatMap(book -> booksRepo.save(book))
                 .as(StepVerifier::create)
                 .expectNextMatches(b -> b instanceof Book)

@@ -23,8 +23,8 @@ public class TotalController {
     @Autowired
     ScienceJournalRepo scienceJournalRepo;
 
-    @GetMapping("/total/price/matching/barcode/{value}")
-    public Mono<ResponseEntity<Object>> getTotalPricemathing(@PathVariable String value) {
+    @GetMapping("/price/matching/barcode/{value}")
+    public Mono<ResponseEntity<Object>> getTotalPriceMatching(@PathVariable String value) {
         return booksRepo.findByBarcodeContaining(value)
                 .concatWith(antiqueBooksRepo.findByBarcodeContaining(value))
                 .concatWith(scienceJournalRepo.findByBarcodeContaining(value))
