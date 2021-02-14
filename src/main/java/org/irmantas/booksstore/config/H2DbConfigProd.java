@@ -21,12 +21,11 @@ public class H2DbConfigProd extends AbstractR2dbcConfiguration {
     public H2ConnectionFactory connectionFactory() {
         return new H2ConnectionFactory(
                 H2ConnectionConfiguration.builder()
-                        .url("mem:testdb;DB_CLOSE_DELAY=-1;TRACE_LEVEL_SYSTEM_OUT=3")
+                        .url("jdbc:h2:/data/sample;IFEXISTS=TRUE;DB_CLOSE_DELAY=-1")
                         .username("sa")
                         .build()
         );
     }
-
 
     @Bean
     ReactiveTransactionManager transactionManager(ConnectionFactory connectionFactory) {

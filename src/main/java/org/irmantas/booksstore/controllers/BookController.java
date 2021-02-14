@@ -3,8 +3,6 @@ package org.irmantas.booksstore.controllers;
 import org.irmantas.booksstore.exceptions.ApiErrors;
 import org.irmantas.booksstore.model.Book;
 import org.irmantas.booksstore.repositories.BooksRepo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,11 +23,8 @@ public class BookController {
     @Autowired
     ControllersUtils controllersUtils;
 
-    Logger logger = LoggerFactory.getLogger(BookController.class);
-
     @Autowired
     ApiErrors apiErrors;
-
 
     @GetMapping("")
     public Flux<Book> getAllBooks() {
@@ -50,7 +45,7 @@ public class BookController {
     @GetMapping("/{id}")
     public Mono<ResponseEntity<Book>> getBooksById(@PathVariable Long id) {
         return Mono.just(id)
-                .map(aLong -> Math.abs(aLong))
+                .map(Math::abs)
                 .flatMap(aLong -> booksRepo.findById(id))
                 .onErrorResume(e -> getBookErrorMono(DB_OPERATION_FAILED))
                 .map(book1 -> ResponseEntity.ok().body(book1))
@@ -150,5 +145,4 @@ public class BookController {
         apiErrors.setMessage(message);
         return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
     }
-
 }
