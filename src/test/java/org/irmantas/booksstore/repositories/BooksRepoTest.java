@@ -1,7 +1,7 @@
 package org.irmantas.booksstore.repositories;
 
 import org.irmantas.booksstore.model.Book;
-import org.irmantas.booksstore.util.InfrastructureConfigurationRaw;
+import org.irmantas.booksstore.util.InfrastructureConfiguration;
 import org.irmantas.booksstore.util.LoadFlux;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(SpringExtension.class)
 @ActiveProfiles("test")
 @EnableR2dbcRepositories(basePackages = "org.irmantas.booksstore.repositories")
-@SpringBootTest(classes = InfrastructureConfigurationRaw.class)
+@SpringBootTest(classes = InfrastructureConfiguration.class)
 class BooksRepoTest {
 
     @Autowired

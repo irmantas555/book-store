@@ -39,6 +39,7 @@ public class Book implements BookHelpers {
         this.price = BigDecimal.valueOf(price);
     }
 
+
     public Book(String name, String author, String barcode, int qty, double price) {
         this.name = name;
         this.author = author;
@@ -53,10 +54,18 @@ public class Book implements BookHelpers {
 
     public String validateBook() {
         String barcodeMatch = "[0-9]{13}";
-        if (null == name || name.length() < 2) {
+        String nameMatch = ".{2,40}";
+        String authorMatch = "[\\p{Alpha}\\s\\u00C0-\\u02b9]{2,20}";
+        String intMatch = "[1-2]{0,1}[0-9]{1,9}";
+        String longMatch = "[0-9]{0,18}";
+        String bigMatch = "[0-9]{0,18}[\\.]{0,1}[0-9]{0,18}";
+        if(name == null){
+            return "Null value not allowd";
+        }
+        else if (!name.matches(nameMatch)) {
             return "Name should be at least 2 characters long";
-        } else if (null == author || author.length() < 2) {
-            return "Author should be at least 2 characters long";
+        } else if (!author.matches(authorMatch)) {
+            return "Author should be at least 2 characters long and characters should be alphabetic";
         } else if (!barcode.matches(barcodeMatch)) {
             return "Invalid barcode, it shoulb only digits and 13 digits long";
         } else if (qty < 0) {
@@ -70,6 +79,8 @@ public class Book implements BookHelpers {
     @SneakyThrows
     public Object updateField(String field, String fieldValue) {
         String barcodeMatch = "[0-9]{13}";
+        String nameMatch = "[.]{1,20}";
+        String authorMatch = "[\\p{Alpha}\\s\\u00C0-\\u02b9]{1,20}";
         String intMatch = "[1-2]{0,1}[0-9]{1,9}";
         String longMatch = "[0-9]{0,18}";
         String bigMatch = "[0-9]{0,18}[\\.]{0,1}[0-9]{0,18}";
@@ -102,11 +113,17 @@ public class Book implements BookHelpers {
                 return "Price value should be digits and dot";
             }
 
-        } else {
-            if (fieldValue.length() > 1) {
+        } else if (field.equals(name)){
+            if (fieldValue.matches(nameMatch)) {
             field1.set(this, fieldValue);
             } else {
-                return "Value should be al least 2 characters long";
+                return "Value should be al least 2";
+            }
+        } else {
+            if (fieldValue.matches(authorMatch)) {
+                field1.set(this, fieldValue);
+            } else {
+                return "Value should be al least 2 characters long and contain only characters and spaces";
             }
         }
         String s = this.validateBook();
@@ -120,4 +137,6 @@ public class Book implements BookHelpers {
         long count = Arrays.stream(Book.class.getDeclaredFields()).filter(field1 -> field1.getName().equals(field)).count();
         return count > 0;
     }
+
+
 }

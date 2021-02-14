@@ -1,13 +1,13 @@
 package org.irmantas.booksstore.controllers;
 
+import org.irmantas.booksstore.exceptions.ApiErrors;
 import org.irmantas.booksstore.model.AntiqueBook;
 import org.irmantas.booksstore.repositories.AntiqueBooksRepo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -20,7 +20,8 @@ public class AntiqueBookConroller {
     @Autowired
     AntiqueBooksRepo antiqBooksRepo;
 
-    Logger logger = LoggerFactory.getLogger(BookController.class);
+    @Autowired
+    ApiErrors apiErrors;
 
     String notExistWithIdReply = "Entity with such Id not exists in DB";
     String notExistWithBarcodeReply = "Entity with such barcode not exists in DB";
@@ -30,9 +31,23 @@ public class AntiqueBookConroller {
     String dbOperationFailed = "There was an error in DB operation";
 
 
+
     @GetMapping("")
     public Flux<AntiqueBook> getAllBooks() {
         return antiqBooksRepo.findAll();
+    }
+
+
+    @PostMapping("")
+    public Mono<ResponseEntity<Object>> postBook(@RequestBody AntiqueBook newBook) {
+        String validationMessage = newBook.validateBook();
+        if (!validationMessage.equals("OK")) {
+            apiErrors.setMessage(validationMessage);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+        } else {
+            return antiqBooksRepo.save(newBook)
+                    .map(book -> ResponseEntity.ok().body(book));
+        }
     }
 
 
@@ -42,7 +57,8 @@ public class AntiqueBookConroller {
                 .defaultIfEmpty(new AntiqueBook())
                 .handle((book1, sink) -> {
                     if (null == book1.getName()) {
-                        sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
+                        apiErrors.setMessage(notExistWithIdReply);
+                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                     } else
                         sink.next(ResponseEntity.ok().body(book1));
                 });
@@ -50,18 +66,15 @@ public class AntiqueBookConroller {
 
     @GetMapping("/barcode/{value}")
     public Mono<ResponseEntity<Object>> getBooksByBarcode(@PathVariable String value) {
-        if (!value.matches("[0-9]{13}")) {
-            return Mono.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
-        } else {
-            return antiqBooksRepo.findByBarcode(value)
-                    .defaultIfEmpty(new AntiqueBook())
-                    .handle((book1, sink) -> {
-                        if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
-                        } else
-                            sink.next(ResponseEntity.ok().body(book1));
-                    });
-        }
+        return antiqBooksRepo.findByBarcode(value)
+                .defaultIfEmpty(new AntiqueBook())
+                .handle((book1, sink) -> {
+                    if (null == book1.getName()) {
+                        apiErrors.setMessage(notExistWithBarcodeReply);
+                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                    } else
+                        sink.next(ResponseEntity.ok().body(book1));
+                });
     }
 
     @PutMapping("/barcode/{barcodeValue}/{field}/{fieldValue}")
@@ -70,31 +83,38 @@ public class AntiqueBookConroller {
                                                               @PathVariable String fieldValue
     ) {
         if (!barcodeValue.matches("[0-9]{13}")) {
-            return Mono.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
+            apiErrors.setMessage(barcodeNotValid);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         } else if (!controllersUtils.getBookClassesFieldList().contains(field)) {
-            return Mono.just(new ResponseEntity<>(noSuchField, HttpStatus.BAD_REQUEST));
+            apiErrors.setMessage(noSuchField);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         } else {
             return antiqBooksRepo.findByBarcode(barcodeValue)
                     .defaultIfEmpty(new AntiqueBook())
                     .handle((book1, sink) -> {
                         if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
+                            apiErrors.setMessage(notExistWithBarcodeReply);
+                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                         } else {
                             Object objectResponseEntity = book1.updateField(field, fieldValue);
                             if (objectResponseEntity instanceof String) {
-                                sink.next(new ResponseEntity<>((String) objectResponseEntity, HttpStatus.BAD_REQUEST));
+                                apiErrors.setMessage((String) objectResponseEntity);
+                                sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                             } else {
                                 antiqBooksRepo.save((AntiqueBook) objectResponseEntity)
                                         .defaultIfEmpty(new AntiqueBook())
-                                        .flatMap(antiqBooksRepo::save)
                                         .subscribe(v -> {
                                                     if (null != v.getName()) {
                                                         sink.next(ResponseEntity.ok().body(v));
                                                     } else {
-                                                        sink.next(new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST));
+                                                        apiErrors.setMessage(dbOperationFailed);
+                                                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                                                     }
                                                 },
-                                                err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
+                                                err -> {
+                                                    apiErrors.setMessage(err.getLocalizedMessage());
+                                                    sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                                                });
                             }
                         }
                     });
@@ -112,40 +132,35 @@ public class AntiqueBookConroller {
                     .defaultIfEmpty(new AntiqueBook())
                     .handle((book1, sink) -> {
                         if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
+                            apiErrors.setMessage(notExistWithBarcodeReply);
+                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                         } else
                             sink.next(book1);
                     });
         }
     }
 
-    @PostMapping("")
-    public Mono<ResponseEntity<Object>> postBook(@RequestBody AntiqueBook newBook) {
-        String validationMessage = newBook.validateBook();
-        if (!validationMessage.equals("OK")) {
-            return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
-        } else
-            return Mono.just(newBook)
-                    .flatMap(book1 -> antiqBooksRepo.save(book1))
-                    .map(book1 -> ResponseEntity.ok().body(book1));
-    }
-
-
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<Object>> updateBookById(@PathVariable Long id, @RequestBody AntiqueBook updatedBook) {
-        String validationMessage = updatedBook.validateBook();
+    public Mono<ResponseEntity<Object>> updateBookById(@PathVariable Long id, @RequestBody AntiqueBook updatedAntiqueBook) {
+        String validationMessage = updatedAntiqueBook.validateBook();
         if (!validationMessage.equals("OK")) {
-            return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
+            apiErrors.setMessage(notExistWithIdReply);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         } else
             return antiqBooksRepo.findById(id)
                     .defaultIfEmpty(new AntiqueBook())
                     .handle((book1, sink) -> {
                         if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
+                            apiErrors.setMessage(notExistWithIdReply);
+                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                         } else {
-                            antiqBooksRepo.save(updatedBook)
+                            updatedAntiqueBook.setId(id);
+                            antiqBooksRepo.save(updatedAntiqueBook)
                                     .subscribe(v -> sink.next(ResponseEntity.ok().body(v)),
-                                            throwable -> sink.next(new ResponseEntity<>(throwable.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
+                                            err -> {
+                                                apiErrors.setMessage(err.getLocalizedMessage());
+                                                sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                                            });
                         }
                     });
     }
@@ -156,14 +171,21 @@ public class AntiqueBookConroller {
                 .defaultIfEmpty(new AntiqueBook())
                 .handle((book1, sink) -> {
                     if (null == book1.getName()) {
-                        sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
+                        apiErrors.setMessage(notExistWithIdReply);
+                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                     } else {
                         antiqBooksRepo.deleteById(id)
                                 .subscribe(v -> {
                                         },
-                                        throwable -> sink.next(new ResponseEntity<>(throwable.getLocalizedMessage(), HttpStatus.BAD_REQUEST)),
-                                        () -> sink.next(new ResponseEntity<>("Entity with id " + id + " deleted", HttpStatus.OK)));
+                                        err -> {
+                                            apiErrors.setMessage(err.getLocalizedMessage());
+                                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                                        },
+                                        () -> sink.next(new ResponseEntity<>("Entity with id " + id + " deleted", HttpStatus.OK))
+                                );
                     }
                 });
     }
+
+ 
 }

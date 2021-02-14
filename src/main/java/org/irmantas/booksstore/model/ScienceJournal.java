@@ -2,7 +2,6 @@ package org.irmantas.booksstore.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -11,7 +10,6 @@ import java.math.RoundingMode;
 import java.util.Arrays;
 
 @Data
-@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(value = "science_journals")
 public class ScienceJournal extends Book{
@@ -29,6 +27,9 @@ public class ScienceJournal extends Book{
 
     public ScienceJournal(int scienceIndex) {
         this.scienceIndex = scienceIndex;
+    }
+
+    public ScienceJournal() {
     }
 
     @Override
@@ -64,7 +65,7 @@ public class ScienceJournal extends Book{
                 this.scienceIndex = Integer.parseInt(fieldValue);
                 return this;
             } else {
-                return "Vaue should contain digit and should be between 1 and 10 ";
+                return "Value should contain digit and should be between 1 and 10 ";
             }
         } else {
             return super.updateField(field, fieldValue);

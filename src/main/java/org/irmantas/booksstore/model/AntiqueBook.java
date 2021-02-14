@@ -2,7 +2,6 @@ package org.irmantas.booksstore.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -13,7 +12,6 @@ import java.util.Arrays;
 
 
 @Data
-@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(value = "antique_books")
 public class AntiqueBook extends Book {
@@ -27,6 +25,9 @@ public class AntiqueBook extends Book {
     public AntiqueBook(long id, String name, String author, String barcode, int qty, BigDecimal price, int releaseYear) {
         super(id, name, author, barcode, qty, price);
         this.releaseYear = releaseYear;
+    }
+
+    public AntiqueBook() {
     }
 
     public AntiqueBook(int releaseYear) {

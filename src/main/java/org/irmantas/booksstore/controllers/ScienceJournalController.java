@@ -1,5 +1,7 @@
 package org.irmantas.booksstore.controllers;
 
+
+import org.irmantas.booksstore.exceptions.ApiErrors;
 import org.irmantas.booksstore.model.ScienceJournal;
 import org.irmantas.booksstore.repositories.ScienceJournalRepo;
 import org.slf4j.Logger;
@@ -8,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -17,147 +20,172 @@ public class ScienceJournalController {
     @Autowired
     ControllersUtils controllersUtils;
 
-    Logger logger = LoggerFactory.getLogger(BookController.class);
+    @Autowired
+    ScienceJournalRepo scienceJournalRepo;
+
+    @Autowired
+    ApiErrors apiErrors;
+    
+    Logger logger = LoggerFactory.getLogger(ScienceJournalController.class);
 
     String notExistWithIdReply = "Entity with such Id not exists in DB";
     String notExistWithBarcodeReply = "Entity with such barcode not exists in DB";
     String barcodeNotValid = "Value of barcode for search is not valid";
     String notExistReply = "Such entity not exists in DB";
-    String noSuchField = "No such field in in Books";
+    String noSuchField = "No such field in in ScienceJournal";
     String dbOperationFailed = "There was an error in DB operation";
 
-    @Autowired
-    ScienceJournalRepo scienceJournalRepo;
-
     @GetMapping("")
-    public Flux<ScienceJournal> getAllSciencJournal() {
+    public Flux<ScienceJournal> getAllScienceJournal() {
         return scienceJournalRepo.findAll();
     }
 
 
+    @PostMapping("")
+    public Mono<ResponseEntity<Object>> postScienceJournal(@RequestBody ScienceJournal newScienceJournal) {
+        String validationMessage = newScienceJournal.validateBook();
+        if (!validationMessage.equals("OK")) {
+            apiErrors.setMessage(validationMessage);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+        } else {
+            return scienceJournalRepo.save(newScienceJournal)
+                    .map(scienceJournal -> ResponseEntity.ok().body(scienceJournal ));
+        }
+    }
+
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<Object>> getSciencJournalsById(@PathVariable Long id) {
+    public Mono<ResponseEntity<Object>> getScienceJournalById(@PathVariable Long id) {
         return scienceJournalRepo.findById(id)
                 .defaultIfEmpty(new ScienceJournal())
-                .handle((book1, sink) -> {
-                    if (null == book1.getName()) {
-                        sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
+                .handle((scienceJournal1, sink) -> {
+                    if (null == scienceJournal1.getName()) {
+                        apiErrors.setMessage(notExistWithIdReply);
+                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                     } else
-                        sink.next(ResponseEntity.ok().body(book1));
+                        sink.next(ResponseEntity.ok().body(scienceJournal1));
                 });
     }
 
     @GetMapping("/barcode/{value}")
-    public Mono<ResponseEntity<Object>> getSciencJournalByBarcode(@PathVariable String value) {
+    public Mono<ResponseEntity<Object>> getScienceJournalByBarcode(@PathVariable String value) {
         return scienceJournalRepo.findByBarcode(value)
                 .defaultIfEmpty(new ScienceJournal())
-                .handle((book1, sink) -> {
-                    if (null == book1.getName()) {
-                        sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
+                .handle((scienceJournal1, sink) -> {
+                    if (null == scienceJournal1.getName()) {
+                        apiErrors.setMessage(notExistWithBarcodeReply);
+                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                     } else
-                        sink.next(ResponseEntity.ok().body(book1));
+                        sink.next(ResponseEntity.ok().body(scienceJournal1));
                 });
     }
 
     @PutMapping("/barcode/{barcodeValue}/{field}/{fieldValue}")
-    public Mono<ResponseEntity<Object>> updateSciencJournalValuesByBarcode(@PathVariable String barcodeValue,
+    public Mono<ResponseEntity<Object>> updateValuesByBarcode(@PathVariable String barcodeValue,
                                                               @PathVariable String field,
                                                               @PathVariable String fieldValue
     ) {
         if (!barcodeValue.matches("[0-9]{13}")) {
-            return Mono.just(new ResponseEntity<>(barcodeNotValid, HttpStatus.BAD_REQUEST));
+            apiErrors.setMessage(barcodeNotValid);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         } else if (!controllersUtils.getBookClassesFieldList().contains(field)) {
-            return Mono.just(new ResponseEntity<>(noSuchField, HttpStatus.BAD_REQUEST));
+            apiErrors.setMessage(noSuchField);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         } else {
             return scienceJournalRepo.findByBarcode(barcodeValue)
                     .defaultIfEmpty(new ScienceJournal())
-                    .handle((book1, sink) -> {
-                        if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
+                    .handle((scienceJournal1, sink) -> {
+                        if (null == scienceJournal1.getName()) {
+                            apiErrors.setMessage(notExistWithBarcodeReply);
+                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                         } else {
-                            Object objectResponseEntity = book1.updateField(field, fieldValue);
+                            Object objectResponseEntity = scienceJournal1.updateField(field, fieldValue);
                             if (objectResponseEntity instanceof String) {
-                                sink.next(new ResponseEntity<>((String) objectResponseEntity, HttpStatus.BAD_REQUEST));
+                                apiErrors.setMessage((String) objectResponseEntity);
+                                sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                             } else {
                                 scienceJournalRepo.save((ScienceJournal) objectResponseEntity)
                                         .defaultIfEmpty(new ScienceJournal())
-                                        .flatMap(scienceJournalRepo::save)
                                         .subscribe(v -> {
                                                     if (null != v.getName()) {
                                                         sink.next(ResponseEntity.ok().body(v));
                                                     } else {
-                                                        sink.next(new ResponseEntity<>(dbOperationFailed, HttpStatus.BAD_REQUEST));
+                                                        apiErrors.setMessage(dbOperationFailed);
+                                                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                                                     }
                                                 },
-                                                err -> sink.next(new ResponseEntity<>(err.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
+                                                err -> {
+                                                    apiErrors.setMessage(err.getLocalizedMessage());
+                                                    sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                                                });
                             }
                         }
                     });
         }
     }
-    @ResponseBody
-    @ResponseStatus(HttpStatus.OK)
+
     @GetMapping("/barcode/match/{value}")
-    public Flux<Object> getSciencJournalBarcodeMatch(@PathVariable String value) {
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public Flux<Object> getBarcodeMatch(@PathVariable String value) {
         if (!value.matches("[0-9]+")) {
             return Flux.just(barcodeNotValid);
         } else {
-            return scienceJournalRepo.findByBarcodeContaining(value.toString())
+            return scienceJournalRepo.findByBarcodeContaining(value)
                     .defaultIfEmpty(new ScienceJournal())
-                    .handle((book1, sink) -> {
-                        if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithBarcodeReply, HttpStatus.BAD_REQUEST));
+                    .handle((scienceJournal1, sink) -> {
+                        if (null == scienceJournal1.getName()) {
+                            apiErrors.setMessage(notExistWithBarcodeReply);
+                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                         } else
-                            sink.next(book1);
+                            sink.next(scienceJournal1);
                     });
         }
     }
 
-    @PostMapping("")
-    public Mono<ResponseEntity<Object>> postSciencJournal(@RequestBody ScienceJournal scienceJournal) {
-        String validationMessage = scienceJournal.validateBook();
-        if (!validationMessage.equals("OK")) {
-            return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
-        } else
-            return Mono.just(scienceJournal)
-                    .flatMap(book1 -> scienceJournalRepo.save(book1))
-                    .map(book1 -> ResponseEntity.ok().body(book1));
-    }
-
-
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<Object>> updateSciencJournalById(@PathVariable Long id, @RequestBody ScienceJournal updatedScienceJournal) {
-        String validationMessage = updatedScienceJournal.validateBook();
+    public Mono<ResponseEntity<Object>> updateScienceJournalById(@PathVariable Long id, @RequestBody ScienceJournal updatedscienceJournal) {
+        String validationMessage = updatedscienceJournal.validateBook();
         if (!validationMessage.equals("OK")) {
-            return Mono.just(new ResponseEntity<>(validationMessage, HttpStatus.BAD_REQUEST));
+            apiErrors.setMessage(notExistWithIdReply);
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
         } else
             return scienceJournalRepo.findById(id)
                     .defaultIfEmpty(new ScienceJournal())
-                    .handle((book1, sink) -> {
-                        if (null == book1.getName()) {
-                            sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
+                    .handle((scienceJournal1, sink) -> {
+                        if (null == scienceJournal1.getName()) {
+                            apiErrors.setMessage(notExistWithIdReply);
+                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                         } else {
-                            scienceJournalRepo.save(updatedScienceJournal)
+                            updatedscienceJournal.setId(id);
+                            scienceJournalRepo.save(updatedscienceJournal)
                                     .subscribe(v -> sink.next(ResponseEntity.ok().body(v)),
-                                            throwable -> sink.next(new ResponseEntity<>(throwable.getLocalizedMessage(), HttpStatus.BAD_REQUEST)));
+                                            err -> {
+                                                apiErrors.setMessage(err.getLocalizedMessage());
+                                                sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                                            });
                         }
                     });
     }
 
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Object>> deleteBook(@PathVariable Long id) {
+    public Mono<ResponseEntity<Object>> deleteScienceJournal(@PathVariable Long id) {
         return scienceJournalRepo.findById(id)
                 .defaultIfEmpty(new ScienceJournal())
-                .handle((book1, sink) -> {
-                    if (null == book1.getName()) {
-                        sink.next(new ResponseEntity<>(notExistWithIdReply, HttpStatus.BAD_REQUEST));
+                .handle((scienceJournal1, sink) -> {
+                    if (null == scienceJournal1.getName()) {
+                        apiErrors.setMessage(notExistWithIdReply);
+                        sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
                     } else {
                         scienceJournalRepo.deleteById(id)
                                 .subscribe(v -> {
                                         },
-                                        throwable -> sink.next(new ResponseEntity<>(throwable.getLocalizedMessage(), HttpStatus.BAD_REQUEST)),
-                                        () -> sink.next(new ResponseEntity<>("Entity with id " + id + " deleted", HttpStatus.OK)));
+                                        err -> {
+                                            apiErrors.setMessage(err.getLocalizedMessage());
+                                            sink.error(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                                        },
+                                        () -> sink.next(new ResponseEntity<>("Entity with id " + id + " deleted", HttpStatus.OK))
+                                );
                     }
                 });
     }

@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface BooksRepo extends ReactiveCrudRepository<Book, Long> {
+
         Mono<Book> findByBarcode(String barcode);
 
         Flux<Book> findByBarcodeContaining(String value);

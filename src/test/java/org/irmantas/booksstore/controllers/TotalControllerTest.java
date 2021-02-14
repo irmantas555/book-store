@@ -1,6 +1,6 @@
 package org.irmantas.booksstore.controllers;
 
-import org.irmantas.booksstore.model.Book;
+import org.irmantas.booksstore.exceptions.ApiErrors;
 import org.irmantas.booksstore.repositories.AntiqueBooksRepo;
 import org.irmantas.booksstore.repositories.BooksRepo;
 import org.irmantas.booksstore.repositories.ScienceJournalRepo;
@@ -22,8 +22,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @ExtendWith(SpringExtension.class)
 @WebFluxTest
 @ActiveProfiles("test")
-@Import({BooksRepo.class})
+@Import({BooksRepo.class, ApiErrors.class})
 class TotalControllerTest {
+
     @InjectMocks
     private TotalController totalController;
 
@@ -43,6 +44,10 @@ class TotalControllerTest {
 
     @MockBean
     ControllersUtils controllersUtils;
+
+    @Autowired
+    ApiErrors apiErrors;
+
 
     @BeforeEach
     private void setUp(){
