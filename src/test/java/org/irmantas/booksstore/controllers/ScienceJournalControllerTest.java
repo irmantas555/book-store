@@ -1,10 +1,9 @@
 package org.irmantas.booksstore.controllers;
 
 import lombok.SneakyThrows;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.irmantas.booksstore.exceptions.ApiErrors;
 import org.irmantas.booksstore.model.Book;
+import org.irmantas.booksstore.model.ScienceJournal;
 import org.irmantas.booksstore.repositories.AntiqueBooksRepo;
 import org.irmantas.booksstore.repositories.BooksRepo;
 import org.irmantas.booksstore.repositories.ScienceJournalRepo;
@@ -40,11 +39,11 @@ import java.util.stream.Stream;
 @ExtendWith(SpringExtension.class)
 @WebFluxTest
 @ActiveProfiles("test")
-@Import({BooksRepo.class, ApiErrors.class})
-public class BookControllerTest {
+@Import({ScienceJournal.class, ApiErrors.class})
+public class ScienceJournalControllerTest {
 
     @InjectMocks
-    private BookController bookController;
+    private ScienceJournalController scienceJournalController;
 
     LoadFlux bookStorage = new LoadFlux();
 
@@ -72,22 +71,22 @@ public class BookControllerTest {
 
     @BeforeEach
     void setRepo() {
-        inserter = BodyInserters.fromValue(bookStorage.getKnownBooksList().get(0));
-        BDDMockito.when(booksRepo.findAll()).thenReturn(bookStorage.getBooks());
-        BDDMockito.when(booksRepo.findById(1L)).
-                thenReturn(Mono.just(bookStorage.getKnownBooksList().get(1)));
-        BDDMockito.when(booksRepo.findByBarcodeContaining("321")).
-                thenReturn(bookStorage.getBooks().take(5));
-        BDDMockito.when(booksRepo.findByBarcode("3210987654321")).
-                thenReturn(Mono.just(bookStorage.getKnownBooksList().get(1)));
-        BDDMockito.when(booksRepo.findById(0L)).
-                thenReturn(Mono.just(bookStorage.getKnownBooksList().get(0)));
-        BDDMockito.when(booksRepo.deleteById(0L)).
+        inserter = BodyInserters.fromValue(bookStorage.getKnownScienceJournalList().get(0));
+        BDDMockito.when(scienceJournalRepo.findAll()).thenReturn(bookStorage.getScienceJournal());
+        BDDMockito.when(scienceJournalRepo.findById(1L)).
+                thenReturn(Mono.just(bookStorage.getKnownScienceJournalList().get(1)));
+        BDDMockito.when(scienceJournalRepo.findByBarcodeContaining("321")).
+                thenReturn(bookStorage.getScienceJournal().take(5));
+        BDDMockito.when(scienceJournalRepo.findByBarcode("3210987654321")).
+                thenReturn(Mono.just(bookStorage.getKnownScienceJournalList().get(1)));
+        BDDMockito.when(scienceJournalRepo.findById(0L)).
+                thenReturn(Mono.just(bookStorage.getKnownScienceJournalList().get(0)));
+        BDDMockito.when(scienceJournalRepo.deleteById(0L)).
                 thenReturn(bookStorage.getEmtpyBooks());
-        BDDMockito.given(booksRepo.save(ArgumentMatchers.any(Book.class))).will(invocationOnMock ->
-                invocationOnMock.getArgument(0, Book.class).getName().equals("John") ?
-                        Mono.just(bookStorage.getModifiedBook()) :
-                        Mono.just(bookStorage.getKnownBooksList().get(0))
+        BDDMockito.given(scienceJournalRepo.save(ArgumentMatchers.any(ScienceJournal.class))).will(invocationOnMock ->
+                invocationOnMock.getArgument(0, ScienceJournal.class).getName().equals("John") ?
+                        Mono.just(bookStorage.getModifiedAScienceJournal()) :
+                        Mono.just(bookStorage.getKnownScienceJournalList().get(0))
         );
 
         BDDMockito.when(controllersUtils.getBookClassesFieldList())
@@ -95,37 +94,37 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Return  all books if successful")
+    @DisplayName("Return  allscience journals if successful")
     public void getBooksBy() {
         testClient
                 .get()
-                .uri("/books")
+                .uri("/science/journals")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(ScienceJournal.class)
                 .hasSize(16)
                 .value(System.out::println);
     }
 
     @Test
-    @DisplayName("Return books  by id  if successfull")
+    @DisplayName("Return science journals  by id  if successfull")
     public void getBookByID() {
         testClient
                 .get()
-                .uri("/books/1")
+                .uri("/science/journals/1")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(ScienceJournal.class)
                 .hasSize(1)
                 .value(System.out::println);
     }
 
     @Test
-    @DisplayName("Return books by barcode if successful")
+    @DisplayName("Return science journals by barcode if successful")
     void getByBarcode() {
         testClient
                 .get()
-                .uri("/books/barcode/3210987654321")
+                .uri("/science/journals/barcode/3210987654321")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody()
@@ -134,14 +133,14 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Return books  by barcode match if successful")
+    @DisplayName("Return science journals  by barcode match if successful")
     void getBarcodeMatch() {
         testClient
                 .get()
-                .uri("/books/barcode/match/321")
+                .uri("/science/journals/barcode/match/321")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(ScienceJournal.class)
                 .hasSize(5)
                 .value(System.out::println);
     }
@@ -151,7 +150,7 @@ public class BookControllerTest {
     void updateValuesByBarcode() {
         testClient
                 .put()
-                .uri("/books/barcode/3210987654321/name/John")
+                .uri("/science/journals/barcode/3210987654321/name/John")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody()
@@ -166,11 +165,11 @@ public class BookControllerTest {
         
         testClient
                 .post()
-                .uri("/books")
+                .uri("/science/journals")
                 .body(inserter)
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(ScienceJournal.class)
                 .hasSize(1)
                 .value(System.out::println);
     }
@@ -181,11 +180,11 @@ public class BookControllerTest {
         
         testClient
                 .put()
-                .uri("/books/0")
+                .uri("/science/journals/0")
                 .body(inserter)
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(ScienceJournal.class)
                 .hasSize(1)
                 .value(System.out::println);
     }
@@ -195,7 +194,7 @@ public class BookControllerTest {
     void deleteBook() {
         testClient
                 .delete()
-                .uri("/books/0")
+                .uri("/science/journals/0")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody().consumeWith(v-> testReturnString(new String(v.getResponseBody(), StandardCharsets.UTF_8), "Entity with id 0 deleted"));
@@ -205,6 +204,7 @@ public class BookControllerTest {
         Assertions.assertEquals(expected, strToTest);
     }
 
+
     @ParameterizedTest
     @DisplayName("Get error handling with wrong path parameters for ID")
     @MethodSource("wrongValuesProvider")
@@ -212,7 +212,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .get()
-                .uri("/books/" + arg)
+                .uri("/science/journals/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -226,7 +226,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .get()
-                .uri("/books/barcode/" + arg)
+                .uri("/science/journals/barcode/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -241,7 +241,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .get()
-                .uri("/books/barcode/match/" + arg)
+                .uri("/science/journals/barcode/match/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -256,7 +256,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .delete()
-                .uri("/books/" + arg)
+                .uri("/science/journals/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectStatus().value(v -> System.out.println("Status: " + v));
@@ -270,7 +270,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .post()
-                .uri("/books/" + arg)
+                .uri("/science/journals/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectStatus().value(v -> System.out.println("Status: " + v));
@@ -280,12 +280,12 @@ public class BookControllerTest {
     @ParameterizedTest
     @MethodSource("wrongBookInserter")
     @SneakyThrows
-    @DisplayName("Post error handling with wrong Books for id")
+    @DisplayName("Post error handling with wrong science journals for id")
     void checkBadBookPost(Book arg) {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .post()
-                .uri("/books/")
+                .uri("/science/journals/")
                 .body(BodyInserters.fromValue(arg))
                 .exchange()
                 .expectStatus().value(matcher)
@@ -300,7 +300,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .put()
-                .uri("/books/1")
+                .uri("/science/journals/1")
                 .body(BodyInserters.fromValue(arg))
                 .exchange()
                 .expectStatus().value(matcher)
@@ -336,16 +336,3 @@ public class BookControllerTest {
 
 }
 
-
-class MyMatcher extends BaseMatcher {
-
-    @Override
-    public boolean matches(Object o) {
-        return (Integer) o < 500;
-    }
-
-    @Override
-    public void describeTo(Description description) {
-        description.appendText("Value did not match");
-    }
-}

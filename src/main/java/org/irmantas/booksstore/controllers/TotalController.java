@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import java.text.DecimalFormat;
+
 @RestController
 @RequestMapping("totals")
 public class TotalController {
@@ -23,6 +25,8 @@ public class TotalController {
     @Autowired
     ScienceJournalRepo scienceJournalRepo;
 
+    DecimalFormat df = new DecimalFormat("###.##");
+
     @GetMapping("/price/matching/barcode/{value}")
     public Mono<ResponseEntity<Object>> getTotalPriceMatching(@PathVariable String value) {
         return booksRepo.findByBarcodeContaining(value)
@@ -33,6 +37,7 @@ public class TotalController {
                     total = total + currentValue.doubleValue();
                     return total;
                 })
+                .map(aDouble -> df.format(aDouble))
                 .map(aDouble -> ResponseEntity.ok().body(aDouble));
     }
 }

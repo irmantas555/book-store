@@ -1,9 +1,8 @@
 package org.irmantas.booksstore.controllers;
 
 import lombok.SneakyThrows;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.irmantas.booksstore.exceptions.ApiErrors;
+import org.irmantas.booksstore.model.AntiqueBook;
 import org.irmantas.booksstore.model.Book;
 import org.irmantas.booksstore.repositories.AntiqueBooksRepo;
 import org.irmantas.booksstore.repositories.BooksRepo;
@@ -40,11 +39,11 @@ import java.util.stream.Stream;
 @ExtendWith(SpringExtension.class)
 @WebFluxTest
 @ActiveProfiles("test")
-@Import({BooksRepo.class, ApiErrors.class})
-public class BookControllerTest {
+@Import({AntiqueBooksRepo.class, ApiErrors.class})
+public class AntiqueBookControllerTest {
 
     @InjectMocks
-    private BookController bookController;
+    private AntiqueBookConroller antiqueBookController;
 
     LoadFlux bookStorage = new LoadFlux();
 
@@ -72,22 +71,22 @@ public class BookControllerTest {
 
     @BeforeEach
     void setRepo() {
-        inserter = BodyInserters.fromValue(bookStorage.getKnownBooksList().get(0));
-        BDDMockito.when(booksRepo.findAll()).thenReturn(bookStorage.getBooks());
-        BDDMockito.when(booksRepo.findById(1L)).
-                thenReturn(Mono.just(bookStorage.getKnownBooksList().get(1)));
-        BDDMockito.when(booksRepo.findByBarcodeContaining("321")).
-                thenReturn(bookStorage.getBooks().take(5));
-        BDDMockito.when(booksRepo.findByBarcode("3210987654321")).
-                thenReturn(Mono.just(bookStorage.getKnownBooksList().get(1)));
-        BDDMockito.when(booksRepo.findById(0L)).
-                thenReturn(Mono.just(bookStorage.getKnownBooksList().get(0)));
-        BDDMockito.when(booksRepo.deleteById(0L)).
+        inserter = BodyInserters.fromValue(bookStorage.getKnownAntiqueBooksList().get(0));
+        BDDMockito.when(antiqueBooksRepo.findAll()).thenReturn(bookStorage.getAntiqueBooks());
+        BDDMockito.when(antiqueBooksRepo.findById(1L)).
+                thenReturn(Mono.just(bookStorage.getKnownAntiqueBooksList().get(1)));
+        BDDMockito.when(antiqueBooksRepo.findByBarcodeContaining("321")).
+                thenReturn(bookStorage.getAntiqueBooks().take(5));
+        BDDMockito.when(antiqueBooksRepo.findByBarcode("3210987654321")).
+                thenReturn(Mono.just(bookStorage.getKnownAntiqueBooksList().get(1)));
+        BDDMockito.when(antiqueBooksRepo.findById(0L)).
+                thenReturn(Mono.just(bookStorage.getKnownAntiqueBooksList().get(0)));
+        BDDMockito.when(antiqueBooksRepo.deleteById(0L)).
                 thenReturn(bookStorage.getEmtpyBooks());
-        BDDMockito.given(booksRepo.save(ArgumentMatchers.any(Book.class))).will(invocationOnMock ->
-                invocationOnMock.getArgument(0, Book.class).getName().equals("John") ?
-                        Mono.just(bookStorage.getModifiedBook()) :
-                        Mono.just(bookStorage.getKnownBooksList().get(0))
+        BDDMockito.given(antiqueBooksRepo.save(ArgumentMatchers.any(AntiqueBook.class))).will(invocationOnMock ->
+                invocationOnMock.getArgument(0, AntiqueBook.class).getName().equals("John") ?
+                        Mono.just(bookStorage.getModifiedAntiqueBook()) :
+                        Mono.just(bookStorage.getKnownAntiqueBooksList().get(0))
         );
 
         BDDMockito.when(controllersUtils.getBookClassesFieldList())
@@ -99,10 +98,10 @@ public class BookControllerTest {
     public void getBooksBy() {
         testClient
                 .get()
-                .uri("/books")
+                .uri("/books/antique")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(AntiqueBook.class)
                 .hasSize(16)
                 .value(System.out::println);
     }
@@ -112,10 +111,10 @@ public class BookControllerTest {
     public void getBookByID() {
         testClient
                 .get()
-                .uri("/books/1")
+                .uri("/books/antique/1")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(AntiqueBook.class)
                 .hasSize(1)
                 .value(System.out::println);
     }
@@ -125,7 +124,7 @@ public class BookControllerTest {
     void getByBarcode() {
         testClient
                 .get()
-                .uri("/books/barcode/3210987654321")
+                .uri("/books/antique/barcode/3210987654321")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody()
@@ -138,10 +137,10 @@ public class BookControllerTest {
     void getBarcodeMatch() {
         testClient
                 .get()
-                .uri("/books/barcode/match/321")
+                .uri("/books/antique/barcode/match/321")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(AntiqueBook.class)
                 .hasSize(5)
                 .value(System.out::println);
     }
@@ -151,7 +150,7 @@ public class BookControllerTest {
     void updateValuesByBarcode() {
         testClient
                 .put()
-                .uri("/books/barcode/3210987654321/name/John")
+                .uri("/books/antique/barcode/3210987654321/name/John")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody()
@@ -163,14 +162,14 @@ public class BookControllerTest {
     @Test
     @DisplayName("Post book if successfull and return book with id")
     void postBook() {
-        
+        inserter = BodyInserters.fromValue(bookStorage.getKnownAntiqueBooksList().get(0));
         testClient
                 .post()
-                .uri("/books")
+                .uri("/books/antique")
                 .body(inserter)
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(AntiqueBook.class)
                 .hasSize(1)
                 .value(System.out::println);
     }
@@ -181,11 +180,11 @@ public class BookControllerTest {
         
         testClient
                 .put()
-                .uri("/books/0")
+                .uri("/books/antique/0")
                 .body(inserter)
                 .exchange()
                 .expectStatus().is2xxSuccessful()
-                .expectBodyList(Book.class)
+                .expectBodyList(AntiqueBook.class)
                 .hasSize(1)
                 .value(System.out::println);
     }
@@ -195,7 +194,7 @@ public class BookControllerTest {
     void deleteBook() {
         testClient
                 .delete()
-                .uri("/books/0")
+                .uri("/books/antique/0")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody().consumeWith(v-> testReturnString(new String(v.getResponseBody(), StandardCharsets.UTF_8), "Entity with id 0 deleted"));
@@ -212,7 +211,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .get()
-                .uri("/books/" + arg)
+                .uri("/books/antique/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -226,7 +225,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .get()
-                .uri("/books/barcode/" + arg)
+                .uri("/books/antique/barcode/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -241,7 +240,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .get()
-                .uri("/books/barcode/match/" + arg)
+                .uri("/books/antique/barcode/match/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -256,7 +255,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .delete()
-                .uri("/books/" + arg)
+                .uri("/books/antique/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectStatus().value(v -> System.out.println("Status: " + v));
@@ -270,7 +269,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .post()
-                .uri("/books/" + arg)
+                .uri("/books/antique/" + arg)
                 .exchange()
                 .expectStatus().value(matcher)
                 .expectStatus().value(v -> System.out.println("Status: " + v));
@@ -285,7 +284,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .post()
-                .uri("/books/")
+                .uri("/books/antique/")
                 .body(BodyInserters.fromValue(arg))
                 .exchange()
                 .expectStatus().value(matcher)
@@ -300,7 +299,7 @@ public class BookControllerTest {
         MyMatcher matcher = new MyMatcher();
         testClient
                 .put()
-                .uri("/books/1")
+                .uri("/books/antique/1")
                 .body(BodyInserters.fromValue(arg))
                 .exchange()
                 .expectStatus().value(matcher)
@@ -334,18 +333,4 @@ public class BookControllerTest {
         return Stream.of("-30", "**", "-30.00", "-2.0", "4./8");
     }
 
-}
-
-
-class MyMatcher extends BaseMatcher {
-
-    @Override
-    public boolean matches(Object o) {
-        return (Integer) o < 500;
-    }
-
-    @Override
-    public void describeTo(Description description) {
-        description.appendText("Value did not match");
-    }
 }

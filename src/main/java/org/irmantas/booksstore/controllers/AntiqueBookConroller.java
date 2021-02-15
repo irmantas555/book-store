@@ -102,7 +102,7 @@ public class AntiqueBookConroller {
     public Mono<ResponseEntity<AntiqueBook>> updateBookById(@PathVariable Long id, @RequestBody AntiqueBook updatedBook) {
         String validationMessage = updatedBook.validateBook();
         if (!validationMessage.equals("OK")) {
-            return getResponseErrorMono(NO_ENTITY_WITH_ID);
+            return getResponseErrorMono(validationMessage);
         } else
             return antiqBooksRepo.findById(id)
                     .switchIfEmpty(getBookErrorMono(NO_ENTITY_WITH_ID))

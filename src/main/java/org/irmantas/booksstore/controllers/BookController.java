@@ -103,7 +103,7 @@ public class BookController {
     public Mono<ResponseEntity<Book>> updateBookById(@PathVariable Long id, @RequestBody Book updatedBook) {
         String validationMessage = updatedBook.validateBook();
         if (!validationMessage.equals("OK")) {
-            return getResponseErrorMono(NO_ENTITY_WITH_ID);
+            return getResponseErrorMono(validationMessage);
         } else
             return booksRepo.findById(id)
                     .switchIfEmpty(getBookErrorMono(NO_ENTITY_WITH_ID))

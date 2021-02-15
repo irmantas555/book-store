@@ -1,6 +1,5 @@
 package org.irmantas.booksstore.controllers;
 
-
 import org.irmantas.booksstore.exceptions.ApiErrors;
 import org.irmantas.booksstore.model.ScienceJournal;
 import org.irmantas.booksstore.repositories.ScienceJournalRepo;
@@ -103,7 +102,7 @@ public class ScienceJournalController {
     public Mono<ResponseEntity<ScienceJournal>> updateBookById(@PathVariable Long id, @RequestBody ScienceJournal updatedscienceJournal) {
         String validationMessage = updatedscienceJournal.validateBook();
         if (!validationMessage.equals("OK")) {
-            return getResponseErrorMono(NO_ENTITY_WITH_ID);
+            return getResponseErrorMono(validationMessage);
         } else
             return scienceJournalRepo.findById(id)
                     .switchIfEmpty(getBookErrorMono(NO_ENTITY_WITH_ID))
