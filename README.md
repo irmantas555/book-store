@@ -1,5 +1,5 @@
 # Book store project 
-This Java backend REST project for storing Books, Antique Books and Science journals  
+This is Java backend REST project for storing Books, Antique Books and Science journals  
 Project uses in memory H2 database, some data stored by default(16 books to all 3 repositories) 
 Server starting on http://localhost:8080, H2 database console endpoint http://localhost:8081, H2 console JDBC URL: jdbc:h2:mem:testdb  
 ## Api endpoints
