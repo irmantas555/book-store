@@ -15,10 +15,10 @@ Science journals:
 
 Following api endpoints is exposed for each fo book types (e.g /science/journals + /12 as id):  
 GET /                       -all entities (eg /books/ or /books/antique/)  
-GET /{1d}                   -entity with id  
+GET /{id}                   -entity with id  
 GET /barcode/{value}        -entity with barcode value   
 GET /barcode/match/{value}  -all entities with a barcode matching value  
-DELETE /{1d}                -delete entity with id  
+DELETE /{id}                -delete entity with id  
 POST /                      -add new entity  
 PUT /{id}                   -update entity with id  
 PUT /barcode/{barcodeValue}/{field}/{fieldValue} - update entity with barcodeValue set field new value fieldValue   
